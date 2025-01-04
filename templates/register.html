@@ -1,16 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-</head>
-<body>
-    <h2>Créer un compte</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">S'inscrire</button>
-    </form>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white p-4 rounded-lg shadow-md max-w-md mx-auto">
+  <h1 class="text-2xl font-bold mb-4">Inscription</h1>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div>
+      <label for="nom" class="block text-sm font-medium text-gray-700">Nom</label>
+      <input type="text" name="nom" id="nom" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+    </div>
+    <div>
+      <label for="prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
+      <input type="text" name="prenom" id="prenom" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+    </div>
+    <div>
+      <label for="ville" class="block text-sm font-medium text-gray-700">Ville</label>
+      <input type="text" name="ville" id="ville" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+    </div>
+    <div>
+      <label for="numero_telephone" class="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
+      <input type="text" name="numero_telephone" id="numero_telephone" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+    </div>
+    <div>
+      <label for="emploi" class="block text-sm font-medium text-gray-700">Emploi</label>
+      <input type="text" name="emploi" id="emploi" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+    </div>
+    <div>
+      <label for="username" class="block text-sm font-medium text-gray-700">Nom d'utilisateur</label>
+      <input type="text" name="username" id="username" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+    </div>
+    <div>
+      <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+      <input type="password" name="password" id="password" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+    </div>
+    <div>
+      <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">S'inscrire</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

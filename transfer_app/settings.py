@@ -53,10 +53,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'transfer_app.urls'
 
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = 'accounts/transfer/'
-LOGOUT_REDIRECT_URL = '/login/'
 
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 TEMPLATES = [
     {
@@ -126,6 +124,11 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 
+
+# settings.py
+SESSION_COOKIE_SECURE = False  # True en production avec HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'  # Empêche les attaques CSRF
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfert de fonds</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <!-- Barre de navigation -->
+        <nav class="bg-blue-500 p-4 text-white flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Transfert de fonds</h1>
+            <div>
+                {% if user.is_authenticated %}
+                    <span class="mr-4">Bonjour, {{ user.username }} !</span>
+                    <a href="{% url 'logout' %}" class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600">Déconnexion</a>--> my account
+                {% else %}
+                    <a href="{% url 'login' %}" class="bg-green-500 text-white p-2 rounded-md hover:bg-green-600">Connexion</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <!-- Contenu principal -->
+        <div class="mt-4">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+</body>
+</html>
