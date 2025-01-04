@@ -5,10 +5,6 @@ from django.http import JsonResponse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from .models import Account, Transaction
-from django.db import models
 from django.db.models import Q
 from decimal import Decimal
 
@@ -61,26 +57,19 @@ def user_login(request):
     return render(request, 'login.html')
 
 
-def user_logout(request):
-    logout(request)  # Déconnecte l'utilisateur
-    return redirect('login')  # Redirige vers la page de connexion
+
 
 
 @login_required
 def dashboard(request):
     account = request.user.account
     recent_transactions = Transaction.objects.filter(
-        models.Q(sender=account) | models.Q(receiver=account)
+        Q(sender=account) | Q(receiver=account)
     ).order_by('-timestamp')[:5]  # Les 5 dernières transactions
     return render(request, 'dashboard.html', {
         'account': account,
         'recent_transactions': recent_transactions,
     })
-
-
-
-
-from django.http import JsonResponse
 
 @login_required
 def transfer_funds(request):
@@ -120,12 +109,20 @@ def transfer_funds(request):
 
     return render(request, 'transfer.html')
 
+
+
 @login_required
 def transaction_history(request):
     account = request.user.account
     transactions = Transaction.objects.filter(
-        models.Q(sender=account) | models.Q(receiver=account)
+        Q(sender=account) | Q(receiver=account)
     ).order_by('-timestamp')
     return render(request, 'history.html', {
         'transactions': transactions,
     })
+
+
+
+def user_logout(request):
+    logout(request)  # Déconnecte l'utilisateur
+    return redirect('login')  # Redirige vers la page de connexion

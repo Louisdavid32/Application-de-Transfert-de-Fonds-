@@ -30,7 +30,7 @@ def save_account_for_user(sender, instance, **kwargs):
     instance.account.save()
 
 class Transaction(models.Model):
-    STATUS_CHOICES = [
+    STATUS_CHOICES = [  
         ('pending', 'En attente'),
         ('completed', 'Complétée'),
         ('failed', 'Échouée'),
