@@ -1,0 +1,9 @@
+# Ignorer tous les fichiers pycache
+__pycache__/
+*.py[cod]
+
+# Ignorer les fichiers de migration compilés
+*/migrations/__pycache__/
+
+# Exclure également les fichiers *.pyc spécifiques
+*.pyc
