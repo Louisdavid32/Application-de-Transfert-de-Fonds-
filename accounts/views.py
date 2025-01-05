@@ -1,12 +1,15 @@
 from django.shortcuts import render, redirect
-from .models import Account, Transaction, CustomUser
+from .models import Account, Transaction, CustomUser,Beneficiary
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q ,Count, Sum
 from decimal import Decimal
+from django.core.mail import send_mail
+from django.conf import settings
+from .utils import send_sms
 
 
 
@@ -58,24 +61,30 @@ def user_login(request):
 
 
 
-
-
 @login_required
-def dashboard(request):
-    account = request.user.account
-    recent_transactions = Transaction.objects.filter(
-        Q(sender=account) | Q(receiver=account)
-    ).order_by('-timestamp')[:5]  # Les 5 dernières transactions
-    return render(request, 'dashboard.html', {
-        'account': account,
-        'recent_transactions': recent_transactions,
-    })
+def update_profile(request):
+    if request.method == 'POST':
+        user = request.user
+        user.nom = request.POST.get('nom')
+        user.prenom = request.POST.get('prenom')
+        user.email = request.POST.get('email')
+        user.ville = request.POST.get('ville')
+        user.numero_telephone = request.POST.get('numero_telephone')
+        user.emploi = request.POST.get('emploi')
+        user.save()
+        messages.success(request, 'Profil mis à jour avec succès.')
+        return redirect('dashboard')
 
+    return render(request, 'dashboard.html')
+
+
+
+# views.py
 @login_required
 def transfer_funds(request):
     if request.method == 'POST':
         receiver_username = request.POST.get('receiver')
-        amount = Decimal(request.POST.get('amount'))  # Convertir en Decimal
+        amount = Decimal(request.POST.get('amount'))
         description = request.POST.get('description', '')
 
         try:
@@ -90,7 +99,7 @@ def transfer_funds(request):
             return redirect('transfer_funds')
 
         # Effectuer le transfert
-        sender.balance -= amount  # Maintenant, les deux sont des Decimal
+        sender.balance -= amount
         receiver.balance += amount
         sender.save()
         receiver.save()
@@ -104,10 +113,39 @@ def transfer_funds(request):
             status='completed'
         )
 
+        # Envoyer un SMS à l'expéditeur
+        try:
+            sender_message = f"Vous avez transféré {amount} € à {receiver_username}."
+            send_sms(sender.user.numero_telephone, sender_message)
+        except Exception as e:
+            messages.warning(request, f"Transfert réussi, mais échec de l'envoi du SMS à l'expéditeur : {str(e)}")
+
+        # Envoyer un SMS au destinataire
+        try:
+            receiver_message = f"Vous avez reçu {amount} € de {sender.user.username}."
+            send_sms(receiver.user.numero_telephone, receiver_message)
+        except Exception as e:
+            messages.warning(request, f"Transfert réussi, mais échec de l'envoi du SMS au destinataire : {str(e)}")
+
         messages.success(request, f'Transfert de {amount} € vers {receiver_username} réussi !')
         return redirect('dashboard')
 
     return render(request, 'transfer.html')
+
+
+
+
+login_required
+def dashboard(request):
+    account = request.user.account
+    recent_transactions = Transaction.objects.filter(
+        Q(sender=account) | Q(receiver=account)
+    ).order_by('-timestamp')[:5]  # Les 5 dernières transactions
+    return render(request, 'dashboard.html', {
+        'account': account,
+        'recent_transactions': recent_transactions,
+    })
+
 
 
 
@@ -120,6 +158,63 @@ def transaction_history(request):
     return render(request, 'history.html', {
         'transactions': transactions,
     })
+
+
+
+@login_required
+def add_beneficiary(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        account_number = request.POST.get('account_number')
+        bank_name = request.POST.get('bank_name')
+
+        # Créer le bénéficiaire
+        beneficiary = Beneficiary.objects.create(
+            user=request.user,
+            name=name,
+            account_number=account_number,
+            bank_name=bank_name
+        )
+
+        # Envoyer un SMS de confirmation
+        try:
+            message = f"Bonjour {request.user.username}, le bénéficiaire {name} a été ajouté avec succès."
+            send_sms(request.user.numero_telephone, message)  # Envoie un SMS
+            messages.success(request, 'Bénéficiaire ajouté avec succès et SMS envoyé.')
+        except Exception as e:
+            messages.warning(request, f"Bénéficiaire ajouté, mais échec de l'envoi du SMS : {str(e)}")
+
+        return redirect('dashboard')
+
+    return render(request, 'add_beneficiary.html')
+
+@login_required
+def list_beneficiaries(request):
+    beneficiaries = Beneficiary.objects.filter(user=request.user)
+    return render(request, 'list_beneficiary.html', {
+        'beneficiaries': beneficiaries,
+    })
+
+
+
+
+
+
+
+def transaction_statistics(request):
+    # Données pour le diagramme linéaire (évolution des transactions par jour)
+    daily_transactions = Transaction.objects.extra(
+        select={'day': 'DATE(timestamp)'}
+    ).values('day').annotate(total=Count('id')).order_by('day')
+
+    # Données pour le diagramme en camembert (répartition des transactions par statut)
+    status_distribution = Transaction.objects.values('status').annotate(total=Count('id'))
+
+    context = {
+        'daily_transactions': list(daily_transactions),
+        'status_distribution': list(status_distribution),
+    }
+    return render(request, 'statistics.html', context)
 
 
 
