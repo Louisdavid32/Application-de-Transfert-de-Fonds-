@@ -56,6 +56,21 @@ ROOT_URLCONF = 'transfer_app.urls'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
+
+# send sms
+TWILIO_ACCOUNT_SID = ''
+TWILIO_AUTH_TOKEN = ''
+TWILIO_PHONE_NUMBER = ''
+
+# send email
+"""EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'omgbal78@gmail.com'  # Remplace par ton adresse email
+EMAIL_HOST_PASSWORD = '"""
+
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -129,6 +144,7 @@ STATIC_URL = 'static/'
 SESSION_COOKIE_SECURE = False  # True en production avec HTTPS
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'  # Empêche les attaques CSRF
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

@@ -3,15 +3,29 @@ from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+
+
+
+
 class CustomUser(AbstractUser):
     nom = models.CharField(max_length=100)
     prenom = models.CharField(max_length=100)
     ville = models.CharField(max_length=100)
     numero_telephone = models.CharField(max_length=15)
     emploi = models.CharField(max_length=100)
+    email = models.EmailField(unique=True, blank=True)  # Ajout du champ email
+
+
+
+class Beneficiary(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='beneficiaries')
+    name = models.CharField(max_length=100)
+    account_number = models.CharField(max_length=20)
+    bank_name = models.CharField(max_length=100)
 
     def __str__(self):
-        return f"{self.prenom} {self.nom}"
+        return f"{self.name} - {self.account_number}"
+
 
 class Account(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)  # Utilise CustomUser ici
@@ -19,6 +33,8 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.balance} €"
+    
+
 
 @receiver(post_save, sender=CustomUser)  # Écoute CustomUser au lieu de User
 def create_account_for_user(sender, instance, created, **kwargs):
@@ -45,3 +61,65 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.sender.user.username} -> {self.receiver.user.username} : {self.amount} €"
+    
+
+
+
+
+
+
+    
+"""class CustomUser(AbstractUser):
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+    ville = models.CharField(max_length=100)
+    numero_telephone = models.CharField(max_length=15)
+    emploi = models.CharField(max_length=100)
+    email = models.EmailField(unique=True, blank=True)  # Ajout du champ email
+
+    def __str__(self):
+        return f"{self.prenom} {self.nom}"
+
+class Beneficiary(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='beneficiaries')
+    name = models.CharField(max_length=100)
+    account_number = models.CharField(max_length=20)
+    bank_name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.name} - {self.account_number}"
+
+class Account(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)  # Utilise CustomUser ici
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
+
+    def __str__(self):
+        return f"{self.user.username} - {self.balance} €"
+
+@receiver(post_save, sender=CustomUser)
+def create_account_for_user(sender, instance, created, **kwargs):
+    if created:
+        Account.objects.create(user=instance)
+
+class Transaction(models.Model):
+    STATUS_CHOICES = [  
+        ('pending', 'En attente'),
+        ('completed', 'Complétée'),
+        ('failed', 'Échouée'),
+    ]
+
+    sender = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='sent_transactions')
+    receiver = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='received_transactions')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    description = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender.user.username} -> {self.receiver.user.username} : {self.amount} €"
+
+    def clean(self):
+        if self.sender == self.receiver:
+            raise ValidationError("Vous ne pouvez pas vous envoyer de l'argent à vous-même.")
+
+    """

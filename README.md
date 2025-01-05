@@ -1,48 +1,102 @@
-Projet : Application de Transfert de Fonds - Django
+# Application de Transfert de Fonds
 
-Cette application web permet de réaliser des transferts de fonds sécurisés entre utilisateurs, offrant une interface simple et intuitive. Développée avec Django, l'application gère la création de comptes, la gestion des soldes, les transferts de fonds, et les historiques des transactions. Elle est conçue pour être utilisée comme un système de transfert d'argent en ligne.
+## Description
 
-Fonctionnalités :
-Inscription et authentification des utilisateurs : Créez un compte utilisateur avec email et mot de passe, puis connectez-vous en toute sécurité.
-Gestion des comptes utilisateurs : Suivi du solde de chaque utilisateur et des informations de compte.
-Transfert de fonds : Effectuez des transferts entre les utilisateurs avec des vérifications de solde et de sécurité.
-Historique des transactions : Consulter les transactions passées pour un suivi complet.
-Sécurité renforcée : Toutes les données sensibles sont cryptées pour assurer la sécurité des informations personnelles et bancaires.
+Cette application permet aux utilisateurs de transférer des fonds entre différents comptes bancaires. Elle inclut des fonctionnalités telles que la gestion des transactions, l'historique des transferts, et un tableau de bord interactif.
+
+## Fonctionnalités
+
+- **Tableau de Bord** : Affiche le solde actuel et les dernières transactions.
+- **Transfert de Fonds** : Permet de transférer de l'argent vers un autre compte.
+- **Historique des Transactions** : Consulte l'historique complet des transferts.
+- **Gestion du Profil** : Modifie les informations personnelles et les préférences.
+- **Notifications** : Affiche des notifications toast pour les actions réussies ou échouées.
+
+## Technologies Utilisées
+
+- **Frontend** : HTML, CSS (Tailwind CSS), JavaScript
+- **Backend** : Django (Python)
+- **Base de Données** : SQLite (par défaut) ou PostgreSQL
+- **Autres** : Chart.js pour les graphiques, Heroicons pour les icônes
+
+## Prérequis
+
+Avant de commencer, assure-toi d'avoir les éléments suivants installés sur ta machine :
+
+- Python 3.8 ou supérieur
+- Pip (gestionnaire de paquets Python)
+- Un environnement virtuel (recommandé)
+
+## Installation
+
+1. **Cloner le dépôt** :
+   ```bash
+   git clone https://github.com/ton-utilisateur/ton-projet.git
+   cd ton-projet
+
+ 
+ 
+ Créer un environnement virtuel :
 
 
-Technologies utilisées :
-Backend : Django
-Base de données : SQLite (peut être remplacée par PostgreSQL ou MySQL)
-Authentification : Django Auth (pour la gestion des utilisateurs)
-Frontend : HTML, CSS (personnalisé avec Tailwind CSS)
-Sécurité : HTTPS, gestion des tokens et session
-
-Version Control : Git
-
-Prérequis :
-Python 3.x
-Django
-SQLite (ou une autre base de données de votre choix)
-Installation et Configuration :
+```bash
+python -m venv venv
 
 
-Clonez le repository :
+##Sur Linux/Mac :
 
-git clone https://github.com/votre-utilisateur/transfer-funds-app.git
+```bash
 
-Allez dans le dossier du projet :
+source venv/bin/activate
 
-cd transfer-funds-app
+##Sur Windows :
 
-Installez les dépendances 
+```bash
 
-Appliquez les migrations de la base de données :
+venv\Scripts\activate
+
+##Installer les dépendances :
+
+```bash
+
+pip install -r requirements.txt
+
+##Appliquer les migrations :
+
+```bash
 
 python manage.py migrate
 
-Lancez le serveur de développement :
-python manage.py runserver
-Accédez à l'application via http://127.0.0.1:8000/.
+##Créer un superutilisateur (optionnel) :
 
-Contributions :
-Les contributions sont les bienvenues ! Si vous souhaitez contribuer à l'amélioration du projet, veuillez créer une issue ou une pull request. Assurez-vous de suivre les bonnes pratiques et de tester vos modifications avant de les soumettre.
+```bash
+
+python manage.py createsuperuser
+
+##Lancer le serveur de développement :
+
+```bash
+
+python manage.py runserver
+
+##Accéder à l'application :
+
+##Ouvre ton navigateur et visite 
+```bash
+http://127.0.0.1:8000.  
+
+
+**Utilisation**
+##Inscription : Crée un compte pour accéder à l'application.
+
+##Connexion : Connecte-toi avec tes identifiants.
+
+##Tableau de Bord : Consulte ton solde et tes dernières transactions.
+
+##Transfert de Fonds : Transfère de l'argent vers un autre compte.
+
+##Historique : Consulte l'historique de tes transactions.
+
+**Auteur**
+
+louis Omgba- [text](https://github.com/Louisdavid32/)

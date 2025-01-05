@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-4">Liste des Bénéficiaires</h2>
+    <ul>
+        {% for beneficiary in beneficiaries %}
+        <li class="mb-2 p-2 border-b">
+            {{ beneficiary.name }} - {{ beneficiary.account_number }} ({{ beneficiary.bank_name }})
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

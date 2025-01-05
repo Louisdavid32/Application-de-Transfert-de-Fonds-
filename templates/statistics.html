@@ -1,0 +1,70 @@
+<!-- statistics.html -->
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-4">Statistiques des Transactions</h2>
+
+    <!-- Diagramme linéaire -->
+    <div class="mb-8">
+        <h3 class="text-xl font-semibold mb-2">Évolution des Transactions par Jour</h3>
+        <canvas id="lineChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- Diagramme en camembert -->
+    <div>
+        <h3 class="text-xl font-semibold mb-2">Répartition des Transactions par Statut</h3>
+        <canvas id="pieChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
+<script>
+    // Données pour le diagramme linéaire
+    const dailyTransactions = {{ daily_transactions|safe }};
+    const labels = dailyTransactions.map(t => t.day);
+    const data = dailyTransactions.map(t => t.total);
+
+    const lineChart = new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Nombre de Transactions',
+                data: data,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                fill: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Données pour le diagramme en camembert
+    const statusDistribution = {{ status_distribution|safe }};
+    const pieLabels = statusDistribution.map(s => s.status);
+    const pieData = statusDistribution.map(s => s.total);
+
+    const pieChart = new Chart(document.getElementById('pieChart'), {
+        type: 'pie',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieData,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 206, 86, 0.6)',
+                ],
+            }]
+        },
+        options: {
+            responsive: true,
+        }
+    });
+</script>
+{% endblock %}
