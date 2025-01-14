@@ -3,53 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Transfert de fonds</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/heroicons"></script>
+
+    <style>
+        .blur-background {
+            filter: blur(5px);
+            transition: filter 0.3s ease;
+        }
+            
+        
+
+        .active {
+        background-color: #1e40af; /* Couleur bleue plus foncée */
+        }
+
+</style>
 </head>
 <body class="bg-gray-100">
-    <div class="flex">
-        <!-- Sidebar (visible uniquement si l'utilisateur est connecté) -->
-        {% if user.is_authenticated %}
-        <div class="bg-blue-900 text-white w-16 md:w-64 space-y-6 py-7 px-2">
-            <!-- Logo ou Titre -->
-            <div class="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
-                {{ user.nom|first|upper }}
-            </div>
+    <div class="flex h-screen">
+     
 
-            <!-- Liens de Navigation -->
-            <nav>
-                <a href="{% url 'dashboard' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
-                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                    <span class="hidden md:inline">Tableau de bord</span>
-                </a>
-                <a href="{% url 'transfer_funds' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
-                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    <span class="hidden md:inline">Transfert</span>
-                </a>
-                <a href="{% url 'transaction_history' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
-                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    <span class="hidden md:inline">Historique</span>
-                </a>
-                <a href="#" onclick="openModal()" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
-                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <span class="hidden md:inline">Paramètres</span>
-                </a>
-            </nav>
+<!-- Sidebar -->
+<div class="bg-blue-900 text-white w-16 md:w-64 space-y-19 py-9 px-2 fixed h-screen">
+    <!-- Logo or Title -->
+    <div class="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
+        {{ user.username|first|upper }}
+    </div>
 
-            <!-- Bouton de Déconnexion -->
-            <div class="mb-8">  <!-- Ajout de mb-8 pour pousser le bouton plus bas -->
-                <a href="{% url 'logout' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
-                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    <span class="hidden md:inline">Déconnexion</span>
-                </a>
-            </div>
-        </div>
-        {% endif %}
+    <!-- Navigation Links -->
+    <nav class="py-11">
+        <a href="{% url 'dashboard' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'dashboard' %}active{% endif %}">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="hidden md:inline">Tableau de bord</span>
+        </a>
+        <a href="{% url 'transfer_funds' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transfer_funds' %}active{% endif %}">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <span class="hidden md:inline">Transfert</span>
+        </a>
+        <a href="{% url 'transaction_history' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transaction_history' %}active{% endif %}">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            <span class="hidden md:inline">Historique</span>
+        </a>
+        <a href="{% url 'list_beneficiaries' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'list_beneficiaries' %}active{% endif %}">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span class="hidden md:inline">Bénéficiaires</span>
+        </a>
+        <a href="{% url 'transaction_statistics' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transaction_statistics' %}active{% endif %}">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <span class="hidden md:inline">Statistiques</span>
+        </a>
+        <a href="{% url 'view_cards' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'view_cards' %}active{% endif %}">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+            </svg>
+            <span class="hidden md:inline">Mes Cartes</span>
+        </a>
+        <a href="#" onclick="openModal()" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'update_profile' %}active{% endif %}">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span class="hidden md:inline">Paramètres</span>
+        </a>
+    </nav>
 
-        <!-- Contenu Principal -->
-        <div class="flex-1 p-10">
+    <!-- Sign Out Button -->
+    <div class="mt-6 py-20">
+        <a href="{% url 'logout' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
+            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            <span class="hidden md:inline">Déconnexion</span>
+        </a>
+    </div>
+</div>
+
+
+        <!-- Main Content -->
+        <div class="flex-1 ml-16 md:ml-64 overflow-y-auto p-10" id="mainContent">
             {% block content %}
             {% endblock %}
         </div>
@@ -60,31 +91,37 @@
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3 text-center">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Modifier le profil</h3>
-                <form method="post" action="{% url 'update_profile' %}" class="mt-2">
+                <form method="post" action="{% url 'update_profile' %}" class="mt-2" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div class="mb-4">
-                        <label for="nom" class="block text-sm font-medium text-gray-700">Nom</label>
-                        <input type="text" name="nom" id="nom" value="{{ user.nom }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div class="mb-4">
-                        <label for="prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
-                        <input type="text" name="prenom" id="prenom" value="{{ user.prenom }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label for="nom" class="block text-sm font-medium text-gray-700">Nom</label>
+                            <input type="text" name="nom" id="nom" value="{{ user.nom }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
+                            <input type="text" name="prenom" id="prenom" value="{{ user.prenom }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="ville" class="block text-sm font-medium text-gray-700">Ville</label>
+                            <input type="text" name="ville" id="ville" value="{{ user.ville }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="numero_telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
+                            <input type="text" name="numero_telephone" id="numero_telephone" value="{{ user.numero_telephone }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="emploi" class="block text-sm font-medium text-gray-700">Emploi</label>
+                            <input type="text" name="emploi" id="emploi" value="{{ user.emploi }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="image" class="block text-sm font-medium text-gray-700">Image de profil</label>
+                            <input type="file" name="image" id="image" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
                     </div>
                     <div class="mb-4">
                         <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
                         <input type="email" name="email" id="email" value="{{ user.email }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div class="mb-4">
-                        <label for="ville" class="block text-sm font-medium text-gray-700">Ville</label>
-                        <input type="text" name="ville" id="ville" value="{{ user.ville }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div class="mb-4">
-                        <label for="numero_telephone" class="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
-                        <input type="text" name="numero_telephone" id="numero_telephone" value="{{ user.numero_telephone }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div class="mb-4">
-                        <label for="emploi" class="block text-sm font-medium text-gray-700">Emploi</label>
-                        <input type="text" name="emploi" id="emploi" value="{{ user.emploi }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="items-center px-4 py-3">
                         <button type="submit" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -101,12 +138,28 @@
 
     <script>
         function openModal() {
-          document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('blur-background');
         }
-      
+
         function closeModal() {
-          document.getElementById('profileModal').classList.add('hidden');
+            document.getElementById('profileModal').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('blur-background');
         }
+
+
+    
+        // Add active class to the current button (highlight it)
+        document.addEventListener('DOMContentLoaded', function () {
+        const links = document.querySelectorAll('nav a');
+        links.forEach(link => {
+            link.addEventListener('click', function () {
+                links.forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    });
+
     </script>
 </body>
 </html>

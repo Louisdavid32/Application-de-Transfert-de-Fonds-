@@ -5,7 +5,7 @@
     <ul>
         {% for beneficiary in beneficiaries %}
         <li class="mb-2 p-2 border-b">
-            {{ beneficiary.name }} - {{ beneficiary.account_number }} ({{ beneficiary.bank_name }})
+            {{ beneficiary.user }} - {{ beneficiary.beneficiary_user }} ({{ beneficiary.account }})
         </li>
         {% endfor %}
     </ul>

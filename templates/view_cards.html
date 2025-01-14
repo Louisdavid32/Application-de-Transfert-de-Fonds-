@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold mb-6">Mes Cartes Bancaires</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for account in accounts %}
+        <!-- Carte bancaire -->
+        <div class="relative text-white p-8 rounded-xl shadow-lg max-w-sm overflow-hidden
+                    {% if forloop.counter == 2 %} moire-background {% else %} bg-gradient-to-r from-indigo-600 to-indigo-500 {% endif %}">
+            <!-- Icône de copie en haut à droite -->
+            <button onclick="copyToClipboard('{{ account.numero_compte }}')" class="absolute top-6 right-6 text-white hover:text-opacity-75 transition-colors duration-300">
+                <i class="fas fa-copy"></i> <!-- Icône de copie -->
+            </button>
+
+            <!-- Contenu de la carte -->
+            <div class="flex flex-col gap-4">
+                <div>
+                    <h1 class="text-lg font-semibold">{{ account.banque.nom }}</h1>
+                    <p class="text-2xl font-black">{{ account.balance }} €</p>
+                </div>
+                <article class="flex flex-col gap-2">
+                    <div class="flex justify-between">
+                        <h1 class="text-xs font-semibold">{{ account.user.get_full_name }}</h1>
+                        <h2 class="text-xs font-semibold">●● / ●●</h2>
+                    </div>
+                    <p class="text-sm font-semibold tracking-wide">
+                        ●●●● ●●●● ●●●● <span class="text-base">{{ account.numero_compte|slice:"-4:" }}</span>
+                    </p>
+                </article>
+            </div>
+
+            <!-- Acronyme de la banque en bas à droite -->
+            <div class="absolute bottom-6 right-6 text-white text-2xl font-bold
+                        {% if account.banque.acronyme == 'UBA' %} text-red-300 {% endif %}">
+                {{ account.banque.acronyme }}
+            </div>
+
+            <!-- Lignes décoratives -->
+            <img src="{% static 'img/lines.png'%}" alt="Lines" class="absolute top-0 left-0 w-full h-auto opacity-50">
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .moire-background {
+        background:
+            linear-gradient(45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%, rgba(255, 255, 255, 0.1)),
+            linear-gradient(-45deg, rgba(255, 255, 255, 0.1) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.1) 75%, rgba(255, 255, 255, 0.1)),
+            linear-gradient(to right, #6d28d9, #4c1d95); /* Couleur de base */
+        background-size: 20px 20px; /* Taille du motif moiré */
+    }
+</style>
+
+<script>
+    // Fonction pour copier le numéro de compte
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Numéro de compte copié dans le presse-papiers !");
+        }).catch(() => {
+            alert("Erreur lors de la copie.");
+        });
+    }
+</script>
+{% endblock %}

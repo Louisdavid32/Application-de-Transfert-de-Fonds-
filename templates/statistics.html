@@ -1,41 +1,98 @@
-<!-- statistics.html -->
 {% extends 'base.html' %}
 {% block content %}
 <div class="bg-white p-6 rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold mb-4">Statistiques des Transactions</h2>
+    <h2 class="text-2xl font-bold mb-4">Statistiques Avancées des Transactions</h2>
 
-    <!-- Diagramme linéaire -->
-    <div class="mb-8">
-        <h3 class="text-xl font-semibold mb-2">Évolution des Transactions par Jour</h3>
-        <canvas id="lineChart" width="400" height="200"></canvas>
-    </div>
+    <!-- Conteneur pour les diagrammes -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Diagramme linéaire : Évolution des transactions par jour -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-2">Évolution des Transactions par Jour</h3>
+            <div class="chart-container" style="position: relative; height: 200px;">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
 
-    <!-- Diagramme en camembert -->
-    <div>
-        <h3 class="text-xl font-semibold mb-2">Répartition des Transactions par Statut</h3>
-        <canvas id="pieChart" width="400" height="200"></canvas>
+        <!-- Diagramme en camembert : Répartition des transactions par statut -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-2">Répartition des Transactions par Statut</h3>
+            <div class="chart-container" style="position: relative; height: 200px;">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Progress Ring : Distribution des montants des transactions -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-2">Distribution des Montants des Transactions</h3>
+            <div class="progress-ring-container">
+                <svg class="progress-ring" width="200" height="200">
+                    <!-- Cercle de fond -->
+                    <circle class="progress-ring-background" stroke-width="10" fill="transparent" r="80" cx="100" cy="100"/>
+                    <!-- Arcs de cercle pour chaque tranche de montants -->
+                    {% for amount in amount_distribution %}
+                    <path class="progress-ring-arc" data-percent="{{ amount.total }}" stroke-width="10" fill="transparent" r="80" cx="100" cy="100"/>
+                    {% endfor %}
+                    <!-- Texte au centre -->
+                    <text class="progress-ring-text" x="50%" y="50%" text-anchor="middle" dy=".3em">0%</text>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Diagramme en barres : Transactions par utilisateur -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-2">Transactions par Utilisateur</h3>
+            <div class="chart-container" style="position: relative; height: 200px;">
+                <canvas id="userBarChart"></canvas>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Styles pour les Progress Rings -->
+<style>
+    .progress-ring-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .progress-ring-background {
+        stroke: #e0e0e0; /* Couleur de fond du cercle */
+    }
+
+    .progress-ring-arc {
+        transition: stroke-dashoffset 0.35s;
+    }
+
+    .progress-ring-text {
+        font-size: 20px;
+        font-weight: bold;
+        fill: #333;
+    }
+</style>
+
+<!-- Scripts pour les graphiques -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Données pour le diagramme linéaire
+    // Données pour le diagramme linéaire (évolution des transactions par jour)
     const dailyTransactions = {{ daily_transactions|safe }};
-    const labels = dailyTransactions.map(t => t.day);
-    const data = dailyTransactions.map(t => t.total);
+    const lineLabels = dailyTransactions.map(t => t.day);
+    const lineData = dailyTransactions.map(t => t.total);
 
     const lineChart = new Chart(document.getElementById('lineChart'), {
         type: 'line',
         data: {
-            labels: labels,
+            labels: lineLabels,
             datasets: [{
                 label: 'Nombre de Transactions',
-                data: data,
+                data: lineData,
                 borderColor: 'rgba(75, 192, 192, 1)',
                 fill: false,
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true
@@ -44,7 +101,7 @@
         }
     });
 
-    // Données pour le diagramme en camembert
+    // Données pour le diagramme en camembert (répartition des transactions par statut)
     const statusDistribution = {{ status_distribution|safe }};
     const pieLabels = statusDistribution.map(s => s.status);
     const pieData = statusDistribution.map(s => s.total);
@@ -64,6 +121,80 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
+        }
+    });
+
+    // Données pour le Progress Ring (distribution des montants des transactions)
+    const amountDistribution = {{ amount_distribution|safe }};
+    const totalTransactions = amountDistribution.reduce((sum, a) => sum + a.total, 0);
+
+    // Couleurs bleues pour chaque tranche
+    const blueColors = ['#4893FF', '#0179FE', '#BED9FF', '#0066CC', '#99CCFF'];
+
+    // Sélectionnez tous les arcs du Progress Ring
+    const arcs = document.querySelectorAll('.progress-ring-arc');
+    const text = document.querySelector('.progress-ring-text');
+
+    // Calculez la circonférence du cercle
+    const radius = 80;
+    const circumference = 2 * Math.PI * radius;
+
+    // Mettez à jour chaque arc
+    let startAngle = 0;
+    arcs.forEach((arc, index) => {
+        const amountRange = amountDistribution[index];
+        const percent = (amountRange.total / totalTransactions) * 100;
+
+        // Calculez l'angle de fin pour cet arc
+        const endAngle = startAngle + (percent / 100) * 360;
+
+        // Convertissez les angles en coordonnées SVG
+        const startX = 100 + radius * Math.cos((startAngle - 90) * (Math.PI / 180));
+        const startY = 100 + radius * Math.sin((startAngle - 90) * (Math.PI / 180));
+        const endX = 100 + radius * Math.cos((endAngle - 90) * (Math.PI / 180));
+        const endY = 100 + radius * Math.sin((endAngle - 90) * (Math.PI / 180));
+
+        // Définissez la commande SVG pour l'arc
+        const largeArcFlag = percent > 50 ? 1 : 0;
+        const pathData = `M 100 100 L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+
+        // Appliquez la commande SVG à l'arc
+        arc.setAttribute('d', pathData);
+
+        // Définissez une couleur bleue différente pour chaque arc
+        arc.style.stroke = blueColors[index % blueColors.length];
+
+        // Mettez à jour l'angle de départ pour le prochain arc
+        startAngle = endAngle;
+    });
+
+    // Mettez à jour le texte au centre
+    text.textContent = `${Math.round(totalTransactions)}%`;
+
+    // Données pour le diagramme en barres (transactions par utilisateur)
+    const userTransactions = {{ user_transactions|safe }};
+    const userLabels = userTransactions.map(u => u.sender__user__username);
+    const userData = userTransactions.map(u => u.total);
+
+    const userBarChart = new Chart(document.getElementById('userBarChart'), {
+        type: 'bar',
+        data: {
+            labels: userLabels,
+            datasets: [{
+                label: 'Nombre de Transactions',
+                data: userData,
+                backgroundColor: 'rgba(255, 159, 64, 0.6)',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
         }
     });
 </script>

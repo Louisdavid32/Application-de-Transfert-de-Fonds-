@@ -19,26 +19,58 @@
   <div class="overflow-x-auto">
     <table class="min-w-full bg-white">
       <thead>
-        <tr>
-          <th class="py-2 px-4 border-b">Transaction</th>
-          <th class="py-2 px-4 border-b">Montant</th>
-          <th class="py-2 px-4 border-b">Statut</th>
-          <th class="py-2 px-4 border-b">Date</th>
-          <th class="py-2 px-4 border-b">Catégorie</th>
+        <tr class="bg-gray-50">
+          <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Transaction</th>
+          <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Montant</th>
+          <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Statut</th>
+          <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
+          <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Catégorie</th>
         </tr>
       </thead>
       <tbody>
         {% for transaction in transactions %}
         <tr class="hover:bg-gray-50">
-          <td class="py-2 px-4 border-b">
-            {% if transaction.sender == account %}
-              Envoi à {{ transaction.receiver.user.username }}
-            {% else %}
-              Réception de {{ transaction.sender.user.username }}
-            {% endif %}
+          <!-- Colonne "Transaction" -->
+          <td class="py-3 px-4 border-b text-sm text-gray-700 whitespace-nowrap">
+            <div class="flex items-center space-x-3">
+              <!-- Photo de l'utilisateur ou initiale -->
+              <div class="flex-shrink-0">
+                {% if transaction.receiver == account %}
+                  {% if transaction.sender.user.image %}
+                    <img src="{{ transaction.sender.user.image.url }}" alt="{{ transaction.sender.user.username }}" class="w-12 h-12 rounded-full">
+                  {% else %}
+                    <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
+                      {{ transaction.sender.user.username|first|upper }}
+                    </div>
+                  {% endif %}
+                {% else %}
+                  {% if transaction.receiver.user.image %}
+                    <img src="{{ transaction.receiver.user.image.url }}" alt="{{ transaction.receiver.user.username }}" class="w-12 h-12 rounded-full">
+                  {% else %}
+                    <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
+                      {{ transaction.receiver.user.username|first|upper }}
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </div>
+              <!-- Nom de l'utilisateur -->
+              <div>
+                {% if transaction.rereceiver == account %}
+                  <p class="text-sm font-medium">Envoi à {{ transaction.receiver.user.username }}</p>
+                {% else %}
+                  <p class="text-sm font-medium">Réception de {{ transaction.sender.user.username }}</p>
+                {% endif %}
+              </div>
+            </div>
           </td>
-          <td class="py-2 px-4 border-b">{{ transaction.amount }} €</td>
-          <td class="py-2 px-4 border-b">
+
+          <!-- Colonne "Montant" -->
+          <td class="py-3 px-4 border-b text-sm text-gray-700 whitespace-nowrap">
+            {{ transaction.amount }} €
+          </td>
+
+          <!-- Colonne "Statut" -->
+          <td class="py-3 px-4 border-b text-sm text-gray-700 whitespace-nowrap">
             <span class="px-2 py-1 rounded-full 
               {% if transaction.status == 'completed' %}bg-green-100 text-green-600
               {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-600
@@ -46,8 +78,16 @@
               {{ transaction.get_status_display }}
             </span>
           </td>
-          <td class="py-2 px-4 border-b">{{ transaction.timestamp|date:"D H:i" }}</td>
-          <td class="py-2 px-4 border-b">{{ transaction.description|default:"-" }}</td>
+
+          <!-- Colonne "Date" -->
+          <td class="py-3 px-4 border-b text-sm text-gray-700 whitespace-nowrap">
+            {{ transaction.timestamp|date:"D H:i" }}
+          </td>
+
+          <!-- Colonne "Catégorie" -->
+          <td class="py-3 px-4 border-b text-sm text-gray-700 whitespace-nowrap">
+            {{ transaction.description|default:"-" }}
+          </td>
         </tr>
         {% endfor %}
       </tbody>

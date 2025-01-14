@@ -9,7 +9,7 @@
   </div>
 
   <!-- Formulaire de Transfert -->
-  <form id="transfer-form" method="post" class="space-y-6">
+  <form id="transfer-form" method="post" class="space-y-6" enctype="multipart/form-data">
     {% csrf_token %}
 
     <!-- Détails du Destinataire -->
@@ -22,11 +22,20 @@
         </div>
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700">Adresse Email du Destinataire</label>
-          <input type="email" name="email" id="email" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" >
+          <input type="email" name="email" id="email" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
         </div>
         <div>
           <label for="account_number" class="block text-sm font-medium text-gray-700">Numéro de Compte du Destinataire</label>
-          <input type="text" name="account_number" id="account_number" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" >
+          <input type="text" name="account_number" id="account_number" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+        <div>
+          <label for="receiver_currency" class="block text-sm font-medium text-gray-700">Devise du Destinataire</label>
+          <select name="receiver_currency" id="receiver_currency" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+            <option value="EUR">EUR (Euro)</option>
+            <option value="USD">USD (Dollar américain)</option>
+            <option value="XOF">XOF (Franc CFA)</option>
+            <!-- Ajoutez d'autres devises si nécessaire -->
+          </select>
         </div>
       </div>
     </div>
@@ -36,11 +45,20 @@
       <h2 class="text-lg font-semibold mb-2">Sélection de la Banque Source</h2>
       <div>
         <label for="source_bank" class="block text-sm font-medium text-gray-700">Sélectionnez le compte source</label>
-        <select name="source_bank" id="source_bank" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" >
+        <select name="source_bank" id="source_bank" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
           <option value="">Choisissez un compte</option>
           {% for account in bank_accounts %}
-          <option value="{{ account.id }}">{{ account.account_name }} - {{ account.balance }} €</option>
+          <option value="{{ account.id }}">{{ account.banque.acronyme }} - {{ account.balance }} €</option>
           {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="sender_currency" class="block text-sm font-medium text-gray-700">Devise de l'Expéditeur</label>
+        <select name="sender_currency" id="sender_currency" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+          <option value="EUR">EUR (Euro)</option>
+          <option value="USD">USD (Dollar américain)</option>
+          <option value="XOF">XOF (Franc CFA)</option>
+          <!-- Ajoutez d'autres devises si nécessaire -->
         </select>
       </div>
     </div>
@@ -52,6 +70,12 @@
         <div>
           <label for="amount" class="block text-sm font-medium text-gray-700">Montant</label>
           <input type="number" step="0.01" name="amount" id="amount" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+        <div>
+          <label for="converted_amount" class="block text-sm font-medium text-gray-700">Montant Converti</label>
+          <div id="converted_amount_container" class="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white">
+            <!-- Les chiffres du montant converti seront injectés ici -->
+          </div>
         </div>
         <div>
           <label for="description" class="block text-sm font-medium text-gray-700">Note de Transfert (facultatif)</label>
@@ -72,70 +96,156 @@
   <div id="message" class="mt-6"></div>
 </div>
 
-  <!-- Toast Notification -->
-  <!-- Dans base.html -->
+<!-- Toast Notification -->
 <div id="toast" class="hidden fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg">
   Transfert effectué avec succès !
 </div>
 
+<!-- Modal pour la validation en deux étapes (2FA) -->
+<div id="otpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+    <h2 class="text-2xl font-bold mb-4 text-center">Confirmez le transfert</h2>
+    <p class="text-gray-600 text-center mb-6">Un code OTP a été envoyé à votre numéro de téléphone.</p>
+    <input type="text" id="otpInput" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Saisissez le code OTP">
+    <button id="confirmOtp" class="w-full mt-6 bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-200">Confirmer</button>
+  </div>
+</div>
 
+<!-- Styles pour l'animation des chiffres -->
+<style>
+  .digit-container {
+    display: inline-block;
+    overflow: hidden;
+    height: 1.2em; /* Hauteur d'un chiffre */
+    vertical-align: bottom;
+  }
 
-<script>
+  .digit {
+    display: block;
+    transform: translateY(-100%);
+    animation: slideIn 0.5s ease-out forwards;
+  }
 
-
-    function showToast(message) {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;  // Met à jour le message du toast
-        toast.classList.remove('hidden');  // Affiche le toast
-
-        // Masque le toast après 3 secondes
-        setTimeout(() => {
-            toast.classList.add('hidden');
-        }, 10000);
+  @keyframes slideIn {
+    from {
+      transform: translateY(-100%);
     }
+    to {
+      transform: translateY(0);
+    }
+  }
 
-    // Affiche le toast si un message de succès est présent
-    {% for message in messages %}
-        {% if message.tags == 'success' and "réussi" in message|lower %}
-            showToast("{{ message }}");
-        {% endif %}
-    {% endfor %}
+  .digit:nth-child(1) { animation-delay: 0s; }
+  .digit:nth-child(2) { animation-delay: 0.5s; }
+  .digit:nth-child(3) { animation-delay: 4s; }
+  .digit:nth-child(4) { animation-delay: 3s; }
+  .digit:nth-child(5) { animation-delay: 5s; }
+  .digit:nth-child(6) { animation-delay: 1s; }
+  .digit:nth-child(7) { animation-delay: 8.6s; }
+  .digit:nth-child(8) { animation-delay: 7.7s; }
+  .digit:nth-child(9) { animation-delay: 5.8s; }
+  .digit:nth-child(10) { animation-delay: 6.9s; }
+</style>
 
+<!-- Scripts JavaScript -->
+<script>
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.remove('hidden'); // Affiche le toast
+    setTimeout(() => {
+      toast.classList.add('hidden'); // Masque le toast après 3 secondes
+    }, 3000);
+  }
 
+  // Fonction pour afficher le montant converti avec animation
+  function displayConvertedAmount(amount) {
+    const container = document.getElementById('converted_amount_container');
+    container.innerHTML = ''; // Effacer le contenu précédent
 
-  document.getElementById('transfer-form').addEventListener('submit', function (e) {
-    e.preventDefault();  // Empêcher le rechargement de la page
+    // Convertir le montant en chaîne de caractères
+    const amountStr = amount.toString();
 
+    // Créer un conteneur pour chaque chiffre
+    amountStr.split('').forEach((char, index) => {
+      const digitContainer = document.createElement('div');
+      digitContainer.className = 'digit-container';
+
+      const digit = document.createElement('div');
+      digit.className = 'digit';
+      digit.textContent = char;
+
+      digitContainer.appendChild(digit);
+      container.appendChild(digitContainer);
+    });
+  }
+
+  // Fonction pour convertir le montant en temps réel
+  async function convertCurrency(amount, fromCurrency, toCurrency) {
+    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCurrency}`);
+    const data = await response.json();
+    const rate = data.rates[toCurrency];
+    return (amount * rate).toFixed(2);
+  }
+
+  // Écouteur d'événement pour le calcul du montant converti
+  document.getElementById('amount').addEventListener('input', async function () {
+    const amount = parseFloat(this.value);
+    const fromCurrency = document.getElementById('sender_currency').value;
+    const toCurrency = document.getElementById('receiver_currency').value;
+
+    if (amount && fromCurrency && toCurrency) {
+      const convertedAmount = await convertCurrency(amount, fromCurrency, toCurrency);
+      displayConvertedAmount(convertedAmount); // Afficher le montant converti avec animation
+    } else {
+      document.getElementById('converted_amount_container').innerHTML = ''; // Effacer si le montant est 0
+    }
+  });
+
+  // Gestion de la modal OTP
+  document.getElementById('transfer-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
     const formData = new FormData(this);
 
-    fetch('{% url "transfer_funds" %}', {
+    const response = await fetch('{% url "transfer_funds" %}', {
       method: 'POST',
       body: formData,
       headers: {
-        'X-CSRFToken': '{{ csrf_token }}',  // Inclure le jeton CSRF
+        'X-Requested-With': 'XMLHttpRequest',
       },
-    })
-    .then(response => response.json())
-    .then(data => {
-      const messageDiv = document.getElementById('message');
-      if (data.success) {
-        messageDiv.innerHTML = `<p class="text-green-500">${data.message}</p>`;
-        // Mettre à jour le solde affiché (si vous avez un élément pour afficher le solde)
-        const balanceElement = document.getElementById('balance');
-        if (balanceElement) {
-          balanceElement.textContent = `Solde : ${data.new_balance} €`;
-        }
-      } else {
-        messageDiv.innerHTML = `<p class="text-red-500">${data.error}</p>`;
-      }
-    })
-    .catch(error => {
-      console.error('Erreur:', error);
     });
+
+    const data = await response.json();
+    if (data.success && data.step === 'otp') {
+      // Afficher la modal pour saisir le code OTP
+      document.getElementById('otpModal').classList.remove('hidden');
+    } else {
+      alert(data.message);
+    }
   });
 
+  // Confirmation du code OTP
+  document.getElementById('confirmOtp').addEventListener('click', async function () {
+    const otp = document.getElementById('otpInput').value;
 
+    const response = await fetch('{% url "transfer_funds" %}', {
+      method: 'PUT',
+      body: JSON.stringify({ otp: otp }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
 
-
+    const data = await response.json();
+    if (data.success) {
+      // Masquer la modal
+      document.getElementById('otpModal').classList.add('hidden');
+      // Afficher le toast de succès
+      showToast('Transfert effectué avec succès !');
+    } else {
+      alert(data.message);
+    }
+  });
 </script>
 {% endblock %}
