@@ -60,11 +60,17 @@ ROOT_URLCONF = 'transfer_app.urls'
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
 
-# send sms
+# stripe test keys
+STRIPE_PUBLIC_KEY = ''  # Clé publique Stripe
+STRIPE_SECRET_KEY = ''  # Clé secrète Stripe
+STRIPE_WEBHOOK_SECRET = ''
 
-"""TWILIO_ACCOUNT_SID = 'VOTRE_SECRET_TWILIO'
-TWILIO_AUTH_TOKEN = 'VOTRE_SECRET_TWILIO'
-TWILIO_PHONE_NUMBER = 'VOTRE_SECRET_TWILIO'"""
+# send sms token
+TWILIO_ACCOUNT_SID = ''
+TWILIO_AUTH_TOKEN = ''
+TWILIO_PHONE_NUMBER = ''
+
+GEMINI_API_KEY = ""
 
 # send email
 """EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

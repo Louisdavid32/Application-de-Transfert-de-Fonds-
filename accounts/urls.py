@@ -17,4 +17,10 @@ urlpatterns = [
     path('list_beneficiaries/', views.list_beneficiaries, name='list_beneficiaries'),
     path('statistics/', views.transaction_statistics, name='transaction_statistics'),
     path('view-cards/',views.view_cards, name='view_cards'),
+    path('stripe_payment/', views.stripe_payment, name='stripe_payment'),
+    path('stripe_webhook/', views.stripe_webhook, name='stripe_webhook'),
+    path('chatbot/', views.chatbot_view, name='chatbot'),
 ]
+
+
+    

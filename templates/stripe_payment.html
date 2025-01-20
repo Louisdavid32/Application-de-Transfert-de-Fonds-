@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<!-- Conteneur principal -->
+<div id="main-content" class="flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md relative">
+        <!-- Carré violet avec "Stripe" -->
+        <div class="bg-purple-600 text-white w-16 h-9 flex items-center justify-center rounded-lg absolute top-0 left-0">
+            <span class="font-bold text-lg">Stripe</span>
+        </div>
+
+        <h1 class="text-2xl font-bold mb-6 text-center">Recharger votre compte via Stripe</h1>
+        <form id="payment-form">
+            {% csrf_token %}
+            
+            <!-- Champ pour le montant -->
+            <div class="mb-4">
+                <label for="amount" class="block text-sm font-medium text-gray-700">Montant (€):</label>
+                <input type="number" id="amount" name="amount" min="1" required
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Champ pour le numéro de carte -->
+            <div class="mb-4">
+                <label for="card-number" class="block text-sm font-medium text-gray-700">Numéro de carte :</label>
+                <div id="card-number" class="mt-1 p-2 border border-gray-300 rounded-md shadow-sm"></div>
+            </div>
+
+            <!-- Champ pour la date d'expiration -->
+            <div class="mb-4">
+                <label for="card-expiry" class="block text-sm font-medium text-gray-700">Date d'expiration :</label>
+                <div id="card-expiry" class="mt-1 p-2 border border-gray-300 rounded-md shadow-sm"></div>
+            </div>
+
+            <!-- Champ pour le CVC -->
+            <div class="mb-6">
+                <label for="card-cvc" class="block text-sm font-medium text-gray-700">CVC :</label>
+                <div id="card-cvc" class="mt-1 p-2 border border-gray-300 rounded-md shadow-sm"></div>
+            </div>
+
+            <!-- Bouton de soumission -->
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Payer
+            </button>
+        </form>
+
+        <!-- Afficher les erreurs -->
+        <div id="card-errors" class="text-red-500 mt-4 text-sm"></div>
+    </div>
+</div>
+
+<!-- Modale de confirmation -->
+<div id="success-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 backdrop-blur flex items-center justify-center z-1000">
+    <div class="bg-white p-8 rounded-lg shadow-lg text-center">
+        <h2 class="text-2xl font-bold text-green-600 mb-4">Paiement réussi !</h2>
+        <p class="text-gray-700 mb-6">Votre compte a été rechargé avec succès.</p>
+        <button id="close-success-modal-button" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            Fermer
+        </button>
+    </div>
+</div>
+
+<script>
+    // Initialise Stripe avec ta clé publique
+    const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+
+    // Crée des éléments Stripe pour les champs de la carte
+    const elements = stripe.elements();
+    const cardNumber = elements.create('cardNumber', {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#32325d',
+            },
+        },
+    });
+    const cardExpiry = elements.create('cardExpiry', {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#32325d',
+            },
+        },
+    });
+    const cardCvc = elements.create('cardCvc', {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#32325d',
+            },
+        },
+    });
+
+    // Ajoute les éléments Stripe au formulaire
+    cardNumber.mount('#card-number');
+    cardExpiry.mount('#card-expiry');
+    cardCvc.mount('#card-cvc');
+
+    // Gère la soumission du formulaire
+    const form = document.getElementById('payment-form');
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        // Désactive le bouton pour éviter les clics multiples
+        form.querySelector('button').disabled = true;
+
+        // Crée un token de paiement avec les informations de la carte
+        const { token, error } = await stripe.createToken(cardNumber);
+
+        if (error) {
+            // Affiche l'erreur
+            const errorElement = document.getElementById('card-errors');
+            errorElement.textContent = error.message;
+            form.querySelector('button').disabled = false;
+        } else {
+            // Envoie le token à ton serveur Django
+            const response = await fetch('/accounts/stripe_payment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: `amount=${document.getElementById('amount').value}&stripeToken=${token.id}`,
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Affiche la modale de succès
+                openSuccessModal();
+            } else {
+                // Affiche l'erreur
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = data.error;
+                form.querySelector('button').disabled = false;
+            }
+        }
+    });
+
+    // Fonction pour ouvrir la modale de succès
+    function openSuccessModal() {
+        const modal = document.getElementById('success-modal');
+        const mainContent = document.getElementById('main-content'); // Applique le flou sur le conteneur principal
+        if (modal && mainContent) {
+            modal.classList.remove('hidden');
+            mainContent.classList.add('blur-background');
+        }
+    }
+
+    // Fonction pour fermer la modale de succès
+    function closeSuccessModal() {
+        const modal = document.getElementById('success-modal');
+        const mainContent = document.getElementById('main-content'); // Supprime le flou du conteneur principal
+        if (modal && mainContent) {
+            modal.classList.add('hidden');
+            mainContent.classList.remove('blur-background');
+        }
+    }
+
+    // Ajoute un écouteur d'événement au bouton "Fermer"
+    const closeModalButton = document.getElementById('close-success-modal-button');
+    if (closeModalButton) {
+        closeModalButton.addEventListener('click', closeSuccessModal);
+    }
+</script>
+
+<style>
+    /* Style pour le flou de l'arrière-plan */
+    .blur-background {
+        filter: blur(5px); /* Applique un flou de 5px */
+        pointer-events: none; /* Désactive les interactions avec l'arrière-plan */
+    }
+</style>
+
+{% endblock %}

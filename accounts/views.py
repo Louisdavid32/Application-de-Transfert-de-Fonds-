@@ -1,3 +1,4 @@
+from datetime import datetime  
 import json
 import random
 import requests
@@ -13,9 +14,21 @@ from decimal import Decimal
 from django.core.mail import send_mail
 from django.conf import settings
 from .utils import send_sms
-from django.contrib.auth import login
 from django.db.models import Case, When, Value, CharField, Count,Sum,Q
 from django.views.decorators.csrf import csrf_exempt
+import stripe
+import google.generativeai as genai
+import locale
+
+
+locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')  # Définir la locale en français
+
+
+
+# Configurer Gemini
+genai.configure(api_key=settings.GEMINI_API_KEY)
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def register(request):
@@ -74,6 +87,110 @@ def user_login(request):
     return render(request, 'login.html')
 
 
+
+
+
+@csrf_exempt
+def chatbot_view(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_message = data.get('message', '').lower()  # Convertir en minuscules pour faciliter la comparaison
+
+        # Réponses prédéfinies en fonction de l'intention de l'utilisateur
+        if "effectue un transfert de" in user_message:
+            try:
+                # Extraire le montant et le nom du bénéficiaire
+                parts = user_message.split(" ")
+                amount = float(parts[3])  # Montant
+                beneficiary_name = " ".join(parts[5:])  # Nom du bénéficiaire
+
+                # Récupérer le compte de l'utilisateur
+                sender_account = Account.objects.filter(user=request.user).first()
+                if not sender_account:
+                    return JsonResponse({'response': "Aucun compte trouvé."})
+
+                # Récupérer le compte du bénéficiaire
+                beneficiary_account = Account.objects.filter(user__username=beneficiary_name).first()
+                if not beneficiary_account:
+                    return JsonResponse({'response': f"Bénéficiaire '{beneficiary_name}' introuvable."})
+
+                # Vérifier le solde
+                if sender_account.balance < amount:
+                    return JsonResponse({'response': "Solde insuffisant."})
+
+                # Effectuer le transfert
+                Transaction.objects.create(
+                    sender=sender_account,
+                    receiver=beneficiary_account,
+                    amount=amount,
+                    status='completed'
+                )
+
+                # Mettre à jour les soldes
+                sender_account.balance -= amount
+                beneficiary_account.balance += amount
+                sender_account.save()
+                beneficiary_account.save()
+
+                response_text = f"Transfert de {amount} € à {beneficiary_name} effectué avec succès."
+            except Exception as e:
+                response_text = f"Erreur lors du transfert : {str(e)}"
+
+        elif "solde" in user_message:
+            # Récupérer le solde de l'utilisateur
+            account = Account.objects.filter(user=request.user).first()
+            if account:
+                response_text = f"Votre solde actuel est de {account.balance} €."
+            else:
+                response_text = "Aucun compte trouvé."
+
+        elif "dernières transactions" in user_message:
+            # Récupérer les 5 dernières transactions
+            transactions = Transaction.objects.filter(
+                Q(sender__user=request.user) | Q(receiver__user=request.user)
+            ).order_by('-timestamp')[:5]
+            if transactions:
+                response_text = "Voici vos 5 dernières transactions :\n"
+                for transaction in transactions:
+                    response_text += f"- {transaction.amount} € ({transaction.timestamp})\n"
+            else:
+                response_text = "Aucune transaction trouvée."
+
+        elif "transactions du" in user_message:
+            # Extraire la date du message
+            try:
+                date_str = user_message.split("transactions du ")[1].strip()
+                date_obj = datetime.strptime(date_str, "%d %B").replace(year=datetime.now().year)  # Format : "2 janvier"
+                transactions = Transaction.objects.filter(
+                    (Q(sender__user=request.user) | Q(receiver__user=request.user)) &
+                    Q(timestamp__date=date_obj)
+                )
+                if transactions:
+                    response_text = f"Voici vos transactions du {date_str} :\n"
+                    for transaction in transactions:
+                        response_text += f"- {transaction.amount} € ({transaction.timestamp})\n"
+                else:
+                    response_text = f"Aucune transaction trouvée pour le {date_str}."
+            except Exception as e:
+                response_text = f"Erreur : {str(e)}. Veuillez spécifier une date valide (ex: '2 janvier')."
+
+        elif "effectuer un transfert" in user_message:
+            # Donner des instructions pour effectuer un transfert
+            response_text = "Pour effectuer un transfert, veuillez suivre ces étapes :\n1. Cliquez sur 'Effectuer un transfert'.\n2. Sélectionnez un bénéficiaire.\n3. Entrez le montant.\n4. Confirmez la transaction."
+
+        elif "ajouter un bénéficiaire" in user_message:
+            # Donner des instructions pour ajouter un bénéficiaire
+            response_text = "Pour ajouter un bénéficiaire, veuillez suivre ces étapes :\n1. Cliquez sur 'Bénéficiaires'.\n2. Cliquez sur 'Ajouter un bénéficiaire'.\n3. Remplissez les informations requises.\n4. Confirmez l'ajout."
+
+        else:
+            # Si l'intention n'est pas reconnue, utiliser Gemini pour générer une réponse
+            model = genai.GenerativeModel('gemini-pro')
+            response = model.generate_content(user_message)
+            response_text = response.text
+
+        return JsonResponse({'response': response_text})
+
+    return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
 
 @login_required
@@ -145,6 +262,7 @@ def transfer_funds(request):
 
         # Générer un code OTP
         otp = str(random.randint(100000, 999999))  # Code à 6 chiffres
+        print(otp)
         request.session['otp'] = otp  # Stocker le code OTP dans la session
         request.session['transfer_data'] = {  # Stocker les données du transfert
             'receiver_username': receiver_username,
@@ -199,11 +317,11 @@ def transfer_funds(request):
         else:
             converted_amount = amount
 
-        # Effectuer le transfert
-        sender.balance -= amount
-        receiver.balance += converted_amount
-        sender.save()
-        receiver.save()
+        # Effectuer le transfert desormais dans le signale
+        # sender.balance -= amount
+        # receiver.balance += converted_amount
+        # sender.save()
+        # receiver.save()
 
         # Enregistrer la transaction
         Transaction.objects.create(
@@ -240,7 +358,6 @@ def transfer_funds(request):
     # Récupérer les comptes de l'utilisateur pour le formulaire
     bank_accounts = Account.objects.filter(user=request.user)
     return render(request, 'transfer.html', {'active_view': 'transfer_funds', 'bank_accounts': bank_accounts})
-
 
 
 
@@ -342,10 +459,6 @@ def list_beneficiaries(request):
 
 
 
-
-
-
-
 @login_required
 def transaction_statistics(request):
     # Données pour le diagramme linéaire (évolution des transactions par jour)
@@ -384,6 +497,109 @@ def transaction_statistics(request):
     print("Amount Distribution:", amount_distribution)
     print("User Transactions:", user_transactions)
     return render(request, 'statistics.html', context)
+
+
+
+@login_required
+def stripe_payment(request):
+    if request.method == 'POST':
+        amount = int(float(request.POST.get('amount')) * 100)  # Montant en cents
+        stripe_token = request.POST.get('stripeToken')  # Token Stripe
+
+        # Récupérer le compte de l'utilisateur
+        user = request.user
+        account = Account.objects.filter(user=user).first()
+
+        # Vérifier si le compte existe
+        if not account:
+            return JsonResponse({'error': 'Aucun compte trouvé pour cet utilisateur.'}, status=400)
+
+        try:
+            # Créer un paiement avec Stripe
+            charge = stripe.Charge.create(
+                amount=amount,
+                currency='eur',
+                source=stripe_token,
+                description='Recharge de compte',
+            )
+
+            # Recharger le compte de l'utilisateur
+            account.balance += Decimal(amount) / 100  # Convertir en euros
+            account.save()
+
+            # Enregistrer la transaction réussie
+            Transaction.objects.create(
+                receiver=account,  # Le compte rechargé
+                amount=Decimal(amount) / 100,  # Montant en euros
+                sender_currency='EUR',
+                receiver_currency='EUR',
+                description='Recharge Stripe',
+                status='completed',
+                type='recharge',  # Type de transaction
+            )
+
+            return JsonResponse({'success': True})
+
+        except stripe.error.CardError as e:
+            # Enregistrer une transaction échouée en cas d'erreur de carte
+            Transaction.objects.create(
+                receiver=account,
+                amount=Decimal(amount) / 100,
+                sender_currency='EUR',
+                receiver_currency='EUR',
+                description=f'Recharge Stripe échouée: {str(e)}',
+                status='failed',
+                type='recharge',
+            )
+            return JsonResponse({'error': str(e)}, status=400)
+
+        except Exception as e:
+            # Enregistrer une transaction échouée en cas d'erreur inattendue
+            Transaction.objects.create(
+                receiver=account,
+                amount=Decimal(amount) / 100,
+                sender_currency='EUR',
+                receiver_currency='EUR',
+                description=f'Recharge Stripe échouée: {str(e)}',
+                status='failed',
+                type='recharge',
+            )
+            return JsonResponse({'error': str(e)}, status=400)  # Affiche l'erreur réelle
+
+    # Passer la clé publique Stripe au template
+    context = {
+        'STRIPE_PUBLIC_KEY': settings.STRIPE_PUBLIC_KEY,
+        'active_view':'stripe_payment'
+    }
+    return render(request, 'stripe_payment.html', context)
+
+
+
+@csrf_exempt
+def stripe_webhook(request): 
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError as e:
+        return JsonResponse({'error': 'Invalid signature'}, status=400)
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        user = request.user
+        amount = session['amount_total'] / 100  # Convertir en euros
+        # Recharger le compte de l'utilisateur
+        account = Account.objects.get(user=user)
+        account.balance += Decimal(amount)
+        account.save()
+
+    return JsonResponse({'success': True})
 
 
 def user_logout(request):

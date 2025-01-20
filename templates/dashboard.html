@@ -54,30 +54,41 @@
               <div class="flex items-center space-x-3">
                 <!-- Photo de l'utilisateur ou initiale -->
                 <div class="flex-shrink-0">
-                  {% if transaction.sender == account %}
-                    {% if transaction.receiver.user.image %}
-                      <img src="{{ transaction.receiver.user.image.url }}" alt="{{ transaction.receiver.user.username }}" class="w-8 h-8 rounded-full">
-                    {% else %}
-                      <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
-                        {{ transaction.receiver.user.username|first|upper }}
-                      </div>
-                    {% endif %}
+                  {% if transaction.type == 'recharge' %}
+                    <!-- Badge Stripe pour les recharges -->
+                    <div class="text-xs font-bold text-center bg-gradient-to-r from-purple-400 to-purple-600 rounded-full w-10 h-10 flex items-center justify-center mx-auto text-white">
+                      Stripe
+                    </div>
                   {% else %}
-                    {% if transaction.sender.user.image %}
-                      <img src="{{ transaction.sender.user.image.url }}" alt="{{ transaction.sender.user.username }}" class="w-8 h-8 rounded-full">
+                    {% if transaction.sender == account %}
+                      {% if transaction.receiver.user.image %}
+                        <img src="{{ transaction.receiver.user.image.url }}" alt="{{ transaction.receiver.user.username }}" class="w-8 h-8 rounded-full">
+                      {% else %}
+                        <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
+                          {{ transaction.receiver.user.username|first|upper }}
+                        </div>
+                      {% endif %}
                     {% else %}
-                      <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
-                        {{ transaction.sender.user.username|first|upper }}
-                      </div>
+                      {% if transaction.sender.user.image %}
+                        <img src="{{ transaction.sender.user.image.url }}" alt="{{ transaction.sender.user.username }}" class="w-8 h-8 rounded-full">
+                      {% else %}
+                        <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
+                          {{ transaction.sender.user.username|first|upper }}
+                        </div>
+                      {% endif %}
                     {% endif %}
                   {% endif %}
                 </div>
                 <!-- Nom de l'utilisateur -->
                 <div>
-                  {% if transaction.sender == account %}
-                    <p class="text-sm font-medium">Envoi à {{ transaction.receiver.user.username }}</p>
+                  {% if transaction.type == 'recharge' %}
+                    <p class="text-sm font-medium">Recharge via Stripe</p>
                   {% else %}
-                    <p class="text-sm font-medium">Réception de {{ transaction.sender.user.username }}</p>
+                    {% if transaction.sender == account %}
+                      <p class="text-sm font-medium">Envoi à {{ transaction.receiver.user.username }}</p>
+                    {% else %}
+                      <p class="text-sm font-medium">Réception de {{ transaction.sender.user.username }}</p>
+                    {% endif %}
                   {% endif %}
                 </div>
               </div>

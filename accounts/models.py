@@ -80,31 +80,37 @@ class Beneficiary(models.Model):
 
 
 class Transaction(models.Model):
+    TYPE_CHOICES = [
+        ('transfer', 'Transfert'),
+        ('recharge', 'Recharge Stripe'),
+    ]
+
     STATUS_CHOICES = [
         ('pending', 'En attente'),
         ('completed', 'Complétée'),
         ('failed', 'Échouée'),
     ]
 
-    sender = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='sent_transactions')
-    receiver = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='received_transactions')
+    sender = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='sent_transactions', null=True, blank=True)
+    receiver = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='received_transactions', null=True, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     sender_currency = models.CharField(max_length=3, default='EUR')  # Devise de l'expéditeur
     receiver_currency = models.CharField(max_length=3, default='EUR')  # Devise du destinataire
     converted_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Montant converti
     description = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='transfer')  # Nouveau champ
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.sender.user.username} -> {self.receiver.user.username} : {self.amount} {self.sender_currency}"
+        return f"{self.sender.user.username if self.sender else 'Recharge'} -> {self.receiver.user.username if self.receiver else 'Recharge'} : {self.amount} {self.sender_currency}"
 
     def clean(self):
-        if self.sender == self.receiver:
-            raise ValidationError("Vous ne pouvez pas vous envoyer de l'argent à vous-même.")
-        if self.amount > self.sender.balance:
-            raise ValidationError("Solde insuffisant pour effectuer cette transaction.")
-
+        if self.type == 'transfer':
+            if self.sender == self.receiver:
+                raise ValidationError("Vous ne pouvez pas vous envoyer de l'argent à vous-même.")
+            if self.amount > self.sender.balance:
+                raise ValidationError("Solde insuffisant pour effectuer cette transaction.")
 
 
 
@@ -143,14 +149,26 @@ def save_account_for_user(sender, instance, **kwargs):
 @receiver(post_save, sender=Transaction)
 def update_balances(sender, instance, **kwargs):
     if instance.status == 'completed':
-        sender_account = instance.sender
-        receiver_account = instance.receiver
+        if instance.type == 'transfer':
+            # Vérifie que sender et receiver existent
+            if instance.sender is None or instance.receiver is None:
+                raise ValueError("Sender ou Receiver est None pour une transaction de type 'transfer'.")
+            
+            # Met à jour les soldes
+            instance.sender.balance -= instance.amount
+            instance.receiver.balance += instance.amount
 
-        sender_account.balance -= instance.amount
-        receiver_account.balance += instance.amount
+            instance.sender.save()
+            instance.receiver.save()
 
-        sender_account.save()
-        receiver_account.save()
+        elif instance.type == 'recharge':
+            # Pour les recharges Stripe, seul le receiver est pertinent
+            if instance.receiver is None:
+                raise ValueError("Receiver est None pour une transaction de type 'recharge'.")
+            
+            # Met à jour le solde du receiver
+            instance.receiver.balance += instance.amount
+            instance.receiver.save()
 
 
 

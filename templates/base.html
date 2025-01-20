@@ -9,75 +9,107 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/heroicons"></script>
-
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         .blur-background {
             filter: blur(5px);
             transition: filter 0.3s ease;
         }
-            
-        
 
         .active {
-        background-color: #1e40af; /* Couleur bleue plus foncée */
+            background-color: #1e40af; /* Couleur bleue plus foncée */
         }
 
-</style>
+        /* Style pour le pop-up du chatbot */
+        #chatbot-popup {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: none; /* Masqué par défaut */
+        }
+
+        #chatbot-popup.open {
+            display: block; /* Afficher le pop-up */
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
-     
+        <!-- Sidebar -->
+        <div class="bg-blue-900 text-white w-16 md:w-64 space-y-19 py-9 px-2 fixed h-screen">
+            <!-- Logo ou Titre -->
+            <div class="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
+                {{ user.username|first|upper }}
+            </div>
 
-<!-- Sidebar -->
-<div class="bg-blue-900 text-white w-16 md:w-64 space-y-19 py-9 px-2 fixed h-screen">
-    <!-- Logo or Title -->
-    <div class="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
-        {{ user.username|first|upper }}
-    </div>
+            <!-- Navigation Links -->
+            <nav class="py-11">
+                <!-- Lien vers le tableau de bord -->
+                <a href="{% url 'dashboard' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'dashboard' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span class="hidden md:inline">Tableau de bord</span>
+                </a>
 
-    <!-- Navigation Links -->
-    <nav class="py-11">
-        <a href="{% url 'dashboard' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'dashboard' %}active{% endif %}">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-            <span class="hidden md:inline">Tableau de bord</span>
-        </a>
-        <a href="{% url 'transfer_funds' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transfer_funds' %}active{% endif %}">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            <span class="hidden md:inline">Transfert</span>
-        </a>
-        <a href="{% url 'transaction_history' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transaction_history' %}active{% endif %}">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-            <span class="hidden md:inline">Historique</span>
-        </a>
-        <a href="{% url 'list_beneficiaries' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'list_beneficiaries' %}active{% endif %}">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-            <span class="hidden md:inline">Bénéficiaires</span>
-        </a>
-        <a href="{% url 'transaction_statistics' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transaction_statistics' %}active{% endif %}">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-            <span class="hidden md:inline">Statistiques</span>
-        </a>
-        <a href="{% url 'view_cards' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'view_cards' %}active{% endif %}">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-            </svg>
-            <span class="hidden md:inline">Mes Cartes</span>
-        </a>
-        <a href="#" onclick="openModal()" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'update_profile' %}active{% endif %}">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            <span class="hidden md:inline">Paramètres</span>
-        </a>
-    </nav>
+                <!-- Lien vers les transferts -->
+                <a href="{% url 'transfer_funds' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transfer_funds' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <span class="hidden md:inline">Transfert</span>
+                </a>
 
-    <!-- Sign Out Button -->
-    <div class="mt-6 py-20">
-        <a href="{% url 'logout' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
-            <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-            <span class="hidden md:inline">Déconnexion</span>
-        </a>
-    </div>
-</div>
+                <!-- Lien vers l'historique des transactions -->
+                <a href="{% url 'transaction_history' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transaction_history' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    <span class="hidden md:inline">Historique</span>
+                </a>
 
+                <!-- Lien vers les bénéficiaires -->
+                <a href="{% url 'list_beneficiaries' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'list_beneficiaries' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span class="hidden md:inline">Bénéficiaires</span>
+                </a>
+
+                <!-- Lien vers les statistiques -->
+                <a href="{% url 'transaction_statistics' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'transaction_statistics' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span class="hidden md:inline">Statistiques</span>
+                </a>
+
+                <!-- Lien vers les cartes -->
+                <a href="{% url 'view_cards' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'view_cards' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                    </svg>
+                    <span class="hidden md:inline">Mes Cartes</span>
+                </a>
+
+                <!-- Lien vers la recharge Stripe -->
+                <a href="{% url 'stripe_payment' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'stripe_payment' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span class="hidden md:inline">Recharge Stripe</span>
+                </a>
+
+                <!-- Lien vers les paramètres -->
+                <a href="#" onclick="openModal()" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800 {% if active_view == 'update_profile' %}active{% endif %}">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="hidden md:inline">Paramètres</span>
+                </a>
+            </nav>
+
+            <!-- Bouton de déconnexion -->
+            <div class="mt-2 py-20">
+                <a href="{% url 'logout' %}" class="flex items-center py-2.5 px-4 rounded transition duration-200 hover:bg-blue-800">
+                    <svg class="w-6 h-6 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="hidden md:inline">Déconnexion</span>
+                </a>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <div class="flex-1 ml-16 md:ml-64 overflow-y-auto p-10" id="mainContent">
@@ -136,30 +168,78 @@
         </div>
     </div>
 
+    <!-- Pop-up du chatbot -->
+    <div id="chatbot-popup">
+        <!-- En-tête du chatbot -->
+        <div class="bg-blue-500 text-white p-4 rounded-t-lg flex justify-between items-center">
+            <h3 class="text-lg font-semibold">Assistant Virtuel</h3>
+            <button onclick="toggleChatbot()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Corps du chatbot -->
+        <div class="p-4 h-64 overflow-y-auto" id="chatbot-messages">
+            <!-- Messages du chatbot -->
+        </div>
+
+        <!-- Champ de saisie et bouton d'envoi -->
+        <div class="p-4 border-t">
+            <input type="text" id="chatbot-user-input" placeholder="Tapez votre message..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <button id="chatbot-send-btn" class="mt-2 w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Envoyer</button>
+        </div>
+    </div>
+
+    <!-- Bouton pour ouvrir le chatbot -->
+    <button onclick="toggleChatbot()" class="fixed bottom-5 right-5 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600">
+        <i class="fas fa-comment-dots"></i>
+    </button>
+
+    <!-- Script pour gérer le chatbot -->
     <script>
-        function openModal() {
-            document.getElementById('profileModal').classList.remove('hidden');
-            document.getElementById('mainContent').classList.add('blur-background');
+        // Fonction pour ouvrir/fermer le chatbot
+        function toggleChatbot() {
+            const chatbotPopup = document.getElementById('chatbot-popup');
+            chatbotPopup.classList.toggle('open');
         }
 
-        function closeModal() {
-            document.getElementById('profileModal').classList.add('hidden');
-            document.getElementById('mainContent').classList.remove('blur-background');
-        }
+        // Gestion de l'envoi de messages
+        const sendBtn = document.getElementById('chatbot-send-btn');
+        const userInput = document.getElementById('chatbot-user-input');
+        const chatbotMessages = document.getElementById('chatbot-messages');
 
+        sendBtn.addEventListener('click', async () => {
+            const message = userInput.value.trim();
+            if (message) {
+                // Ajouter le message de l'utilisateur
+                chatbotMessages.innerHTML += `<div class="mb-2 text-right"><span class="bg-blue-500 text-white px-4 py-2 rounded-lg inline-block">${message}</span></div>`;
+                userInput.value = '';
 
-    
-        // Add active class to the current button (highlight it)
-        document.addEventListener('DOMContentLoaded', function () {
-        const links = document.querySelectorAll('nav a');
-        links.forEach(link => {
-            link.addEventListener('click', function () {
-                links.forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
-            });
+                // Envoyer le message au backend
+                const response = await fetch('/accounts/chatbot/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify({ message }),
+                });
+
+                const data = await response.json();
+                if (data.response) {
+                    // Ajouter la réponse du chatbot
+                    chatbotMessages.innerHTML += `<div class="mb-2 text-left"><span class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg inline-block">${data.response}</span></div>`;
+                    chatbotMessages.scrollTop = chatbotMessages.scrollHeight; // Faire défiler vers le bas
+                }
+            }
         });
-    });
 
+        // Permettre d'envoyer un message avec la touche "Entrée"
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendBtn.click();
+            }
+        });
     </script>
 </body>
 </html>

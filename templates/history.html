@@ -8,13 +8,6 @@
     <p class="text-gray-600">Gagnez des insights et suivez vos transactions au fil du temps.</p>
   </div>
 
-  <!-- Filtres -->
-  <div class="mb-6">
-    <button class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">
-      Appliquer un filtre
-    </button>
-  </div>
-
   <!-- Tableau des Transactions -->
   <div class="overflow-x-auto">
     <table class="min-w-full bg-white">
@@ -24,7 +17,7 @@
           <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Montant</th>
           <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Statut</th>
           <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
-          <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Catégorie</th>
+          <th class="py-3 px-4 border-b text-left text-sm font-medium text-gray-600">Type</th>
         </tr>
       </thead>
       <tbody>
@@ -33,32 +26,42 @@
           <!-- Colonne "Transaction" -->
           <td class="py-3 px-4 border-b text-sm text-gray-700 whitespace-nowrap">
             <div class="flex items-center space-x-3">
-              <!-- Photo de l'utilisateur ou initiale -->
+              <!-- Icône ou photo -->
               <div class="flex-shrink-0">
-                {% if transaction.receiver == account %}
-                  {% if transaction.sender.user.image %}
-                    <img src="{{ transaction.sender.user.image.url }}" alt="{{ transaction.sender.user.username }}" class="w-12 h-12 rounded-full">
-                  {% else %}
-                    <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
-                      {{ transaction.sender.user.username|first|upper }}
-                    </div>
-                  {% endif %}
+                {% if transaction.type == 'recharge' %}
+                  <div class="text-xs font-bold text-center bg-gradient-to-r from-purple-400 to-purple-600 rounded-full w-10 h-10 flex items-center justify-center mx-auto text-white">
+                    stripe
+                  </div>
                 {% else %}
-                  {% if transaction.receiver.user.image %}
-                    <img src="{{ transaction.receiver.user.image.url }}" alt="{{ transaction.receiver.user.username }}" class="w-12 h-12 rounded-full">
+                  {% if transaction.sender == account %}
+                    {% if transaction.receiver.user.image %}
+                      <img src="{{ transaction.receiver.user.image.url }}" alt="{{ transaction.receiver.user.username }}" class="w-8 h-8 rounded-full">
+                    {% else %}
+                      <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
+                        {{ transaction.receiver.user.username|first|upper }}
+                      </div>
+                    {% endif %}
                   {% else %}
-                    <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
-                      {{ transaction.receiver.user.username|first|upper }}
-                    </div>
+                    {% if transaction.sender.user.image %}
+                      <img src="{{ transaction.sender.user.image.url }}" alt="{{ transaction.sender.user.username }}" class="w-8 h-8 rounded-full">
+                    {% else %}
+                      <div class="text-sm font-bold text-center bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto text-white">
+                        {{ transaction.sender.user.username|first|upper }}
+                      </div>
+                    {% endif %}
                   {% endif %}
                 {% endif %}
               </div>
-              <!-- Nom de l'utilisateur -->
+              <!-- Description -->
               <div>
-                {% if transaction.rereceiver == account %}
-                  <p class="text-sm font-medium">Envoi à {{ transaction.receiver.user.username }}</p>
+                {% if transaction.type == 'recharge' %}
+                  <p class="text-sm font-medium">Recharge Stripe</p>
                 {% else %}
-                  <p class="text-sm font-medium">Réception de {{ transaction.sender.user.username }}</p>
+                  {% if transaction.sender == account %}
+                    <p class="text-sm font-medium">Envoi à {{ transaction.receiver.user.username }}</p>
+                  {% else %}
+                    <p class="text-sm font-medium">Réception de {{ transaction.sender.user.username }}</p>
+                  {% endif %}
                 {% endif %}
               </div>
             </div>
@@ -84,24 +87,14 @@
             {{ transaction.timestamp|date:"D H:i" }}
           </td>
 
-          <!-- Colonne "Catégorie" -->
+          <!-- Colonne "Type" -->
           <td class="py-3 px-4 border-b text-sm text-gray-700 whitespace-nowrap">
-            {{ transaction.description|default:"-" }}
+            {{ transaction.get_type_display }}
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
-
-  <!-- Pagination -->
-  <div class="mt-6 flex justify-between items-center">
-    <button class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">
-      Précédent
-    </button>
-    <button class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">
-      Suivant
-    </button>
   </div>
 </div>
 {% endblock %}
